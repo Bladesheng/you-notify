@@ -8,11 +8,13 @@
 	"private": true,
 	"scripts": {
 		"dev": "quasar dev",
+		"dev:bex": "quasar dev -m bex",
 		"build": "quasar build",
 		"format": "prettier --write --ignore-path .gitignore ."
 	},
 	"dependencies": {
 		"@quasar/extras": "^1.16.4",
+		"events": "^3.3.0",
 		"pinia": "^2.0.11",
 		"quasar": "^2.16.0",
 		"vue": "^3.4.18",
