@@ -3,7 +3,7 @@ import { bexBackground } from 'quasar/wrappers';
 function openExtension() {
 	chrome.tabs.create(
 		{
-			url: chrome.runtime.getURL('www/index.html'),
+			url: chrome.runtime.getURL('www/index.html#/options'),
 		},
 		(/* newTab */) => {
 			// Tab opened.
@@ -16,18 +16,75 @@ chrome.action.onClicked.addListener(openExtension);
 
 declare module '@quasar/app-vite' {
 	interface BexEventMap {
-		/* eslint-disable @typescript-eslint/no-explicit-any */
 		log: [{ message: string; data?: any[] }, never];
 		getTime: [never, number];
 
 		'storage.get': [{ key: string | null }, any];
 		'storage.set': [{ key: string; value: any }, any];
 		'storage.remove': [{ key: string }, any];
-		/* eslint-enable @typescript-eslint/no-explicit-any */
 	}
 }
 
-export default bexBackground((bridge /* , allActiveConnections */) => {
+let isMounted = false;
+
+export default bexBackground((bridge, allActiveConnections) => {
+	if (!isMounted) {
+		isMounted = true;
+
+		setInterval(async () => {
+			console.log('interval');
+
+			chrome.storage.local.get(null, (items) => {
+				console.log(items);
+			});
+		}, 5_000);
+
+		fetchNotifications();
+
+		function fetchNotifications() {
+			chrome.storage.local.get(['token', 'youTrackUrl'], async (items) => {
+				const bearer = `Bearer ${items.token}`;
+				// https://stackoverflow.com/questions/51596809/how-do-i-access-user-notifications-via-rest-in-youtrack
+				const url = `https://${items.youTrackUrl}/api/users/notifications?fields=id,content,metadata`;
+
+				try {
+					const res = await fetch(url, {
+						headers: {
+							Authorization: bearer,
+						},
+					});
+					console.log(res);
+
+					const notifications = await res.json();
+					console.log(notifications);
+
+					chrome.notifications.create({
+						title: 'title: hi',
+						message: `message: you got ${notifications.length} notifications`,
+						type: 'basic',
+						iconUrl: chrome.runtime.getURL('www/icons/favicon-128x128.png'),
+					});
+				} catch (err) {
+					console.error(err);
+				}
+			});
+		}
+	}
+
+	bridge.on('settingsSaved', ({ data, respond }) => {
+		console.log(`[BEX] saving settings`, data);
+
+		chrome.storage.local.set(
+			{
+				token: data.token,
+				youTrackUrl: data.youTrackUrl,
+			},
+			() => {
+				respond();
+			}
+		);
+	});
+
 	bridge.on('log', ({ data, respond }) => {
 		console.log(`[BEX] ${data.message}`, ...(data.data || []));
 		respond();
