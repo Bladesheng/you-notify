@@ -29,6 +29,11 @@ async function saveSettings() {
 		key: 'YouTrackUrl',
 		value: url.value,
 	});
+
+	$q.notify({
+		type: 'positive',
+		message: 'Settings saved',
+	});
 }
 </script>
 
