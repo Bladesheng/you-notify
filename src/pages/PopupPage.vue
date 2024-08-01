@@ -23,11 +23,30 @@ async function doStuff() {
 </script>
 
 <template>
-	popup works
+	<div class="popup">
+		<header>
+			<h1 class="text-h4">YouNotify</h1>
 
-	<q-btn @click="sendNotification()" color="primary" label="send dudes"></q-btn>
+			<q-btn round color="secondary" icon="settings" to="/options" target="_blank" />
+		</header>
 
-	<q-btn @click="doStuff()" color="secondary" label="do stuff"></q-btn>
+		<main>
+			<q-btn @click="sendNotification()" color="primary" label="send dudes"></q-btn>
+
+			<q-btn @click="doStuff()" color="secondary" label="do stuff"></q-btn>
+		</main>
+	</div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.popup {
+	padding: 1rem;
+}
+
+header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 2rem;
+}
+</style>
