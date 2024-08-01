@@ -1,22 +1,35 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 const $q = useQuasar();
 
-$q.bex.on('xx', (e) => {
-	console.log('xx', e);
+const token = ref('');
+const url = ref('');
+
+onMounted(async () => {
+	const tokenStorage = await $q.bex.send('storage.get', {
+		key: 'YouTrackApiToken',
+	});
+	const urlStorage = await $q.bex.send('storage.get', {
+		key: 'YouTrackUrl',
+	});
+
+	token.value = tokenStorage.data;
+	url.value = urlStorage.data;
 });
 
 async function saveSettings() {
-	const res = await $q.bex.send('settingsSaved', {
-		token: token.value,
-		youTrackUrl: url.value,
+	await $q.bex.send('storage.set', {
+		key: 'YouTrackApiToken',
+		value: token.value,
+	});
+
+	await $q.bex.send('storage.set', {
+		key: 'YouTrackUrl',
+		value: url.value,
 	});
 }
-
-const token = ref('');
-const url = ref('');
 </script>
 
 <template>

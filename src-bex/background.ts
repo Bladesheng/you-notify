@@ -71,20 +71,6 @@ export default bexBackground((bridge, allActiveConnections) => {
 		}
 	}
 
-	bridge.on('settingsSaved', ({ data, respond }) => {
-		console.log(`[BEX] saving settings`, data);
-
-		chrome.storage.local.set(
-			{
-				token: data.token,
-				youTrackUrl: data.youTrackUrl,
-			},
-			() => {
-				respond();
-			}
-		);
-	});
-
 	bridge.on('log', ({ data, respond }) => {
 		console.log(`[BEX] ${data.message}`, ...(data.data || []));
 		respond();
