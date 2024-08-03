@@ -11,8 +11,12 @@ type INotification = {
 
 declare module '@quasar/app-vite' {
 	interface BexEventMap {
-		log: [{ message: string; data?: any[] }, never];
+		log: [{ message: string }, any];
 		getTime: [never, number];
+
+		'tabNotification.register': [{ url: string }, any];
+		'tabNotification.create': [never, any];
+		'tabNotification.clear': [never, any];
 
 		'storage.get': [{ key: string | null }, any];
 		'storage.set': [{ key: string; value: any }, any];
@@ -44,71 +48,68 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 	}
 });
 
+chrome.storage.local.get(['YouTrackUrl'], async (items) => {
+	const { YouTrackUrl } = items;
+	if (YouTrackUrl.length) {
+		// register content script if we know the url after browser start
+		await registerContentScript(YouTrackUrl);
+	}
+});
+
 setupInterval();
 
 export default bexBackground((_bridge, allActiveConnections) => {
 	bridge = _bridge;
 
-	bridge.on('log', ({ data, respond }) => {
-		console.log(`[BEX] ${data.message}`, ...(data.data || []));
-		respond();
+	bridge.on('tabNotification.register', async ({ data, respond }) => {
+		await registerContentScript(data.url);
+		await respond();
 	});
 
-	bridge.on('getTime', ({ respond }) => {
-		respond(Date.now());
+	/**
+	 * this just resends the event to all content scripts, because sending even from content script
+	 * for some reason doesn't send the event to other content scripts
+	 * https://github.com/quasarframework/quasar/issues/14778
+	 */
+	bridge.on('tabNotification.clear', async ({ data, respond }) => {
+		await bridge.send('tabNotification.clear');
+		await respond();
+	});
+
+	bridge.on('log', async ({ data, respond }) => {
+		console.log(`[BEX] ${data.message}`);
+		await respond();
+	});
+
+	bridge.on('getTime', async ({ respond }) => {
+		await respond(Date.now());
 	});
 
 	bridge.on('storage.get', ({ data, respond }) => {
 		const { key } = data;
 		if (key === null) {
-			chrome.storage.local.get(null, (items) => {
+			chrome.storage.local.get(null, async (items) => {
 				// Group the values up into an array to take advantage of the bridge's chunk splitting.
-				respond(Object.values(items));
+				await respond(Object.values(items));
 			});
 		} else {
-			chrome.storage.local.get([key], (items) => {
-				respond(items[key]);
+			chrome.storage.local.get([key], async (items) => {
+				await respond(items[key]);
 			});
 		}
 	});
-	// Usage:
-	// const { data } = await bridge.send('storage.get', { key: 'someKey' })
 
 	bridge.on('storage.set', ({ data, respond }) => {
-		chrome.storage.local.set({ [data.key]: data.value }, () => {
-			respond();
+		chrome.storage.local.set({ [data.key]: data.value }, async () => {
+			await respond();
 		});
 	});
-	// Usage:
-	// await bridge.send('storage.set', { key: 'someKey', value: 'someValue' })
 
 	bridge.on('storage.remove', ({ data, respond }) => {
-		chrome.storage.local.remove(data.key, () => {
-			respond();
+		chrome.storage.local.remove(data.key, async () => {
+			await respond();
 		});
 	});
-	// Usage:
-	// await bridge.send('storage.remove', { key: 'someKey' })
-
-	/*
-  // EXAMPLES
-  // Listen to a message from the client
-  bridge.on('test', d => {
-    console.log(d)
-  })
-
-  // Send a message to the client based on something happening.
-  chrome.tabs.onCreated.addListener(tab => {
-    bridge.send('browserTabCreated', { tab })
-  })
-
-  // Send a message to the client based on something happening.
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url) {
-      bridge.send('browserTabUpdated', { tab, changeInfo })
-    }
-  })
-   */
 });
 
 function openExtensionOptions() {
@@ -147,7 +148,7 @@ function fetchNotifications() {
 			const notifications: INotification[] = await res.json();
 			console.log(notifications);
 
-			chrome.storage.session.get(['displayedNotifications'], (items) => {
+			chrome.storage.session.get(['displayedNotifications'], async (items) => {
 				// IDs of all notifications that have already been show to the user
 				const alreadyDisplayed: string[] = items.displayedNotifications ?? [];
 
@@ -168,6 +169,8 @@ function fetchNotifications() {
 						isClickable: true,
 						iconUrl: chrome.runtime.getURL('www/icons/favicon-128x128.png'),
 					});
+
+					await bridge.send('tabNotification.create');
 
 					// so that the new notifications don't get shown again
 					alreadyDisplayed.push(notification.id);
@@ -216,4 +219,32 @@ function parseMessage(message: string) {
 		issueId,
 		formattedMessage: lines.join('\n'),
 	};
+}
+
+/**
+ * Dynamically registers content script for given url
+ * (we don't know the url before the user saves it in the settings page, so we can't put the url into manifest.json)
+ */
+async function registerContentScript(url: string) {
+	const scriptId = 'my-content-script';
+
+	// unregister all previous content scripts
+	try {
+		await chrome.scripting.unregisterContentScripts({ ids: [scriptId] });
+	} catch (err) {
+		console.warn(err);
+	}
+
+	try {
+		await chrome.scripting.registerContentScripts([
+			{
+				id: scriptId,
+				js: ['my-content-script.js'],
+				persistAcrossSessions: false,
+				matches: [`*://${url}/*`],
+			},
+		]);
+	} catch (err) {
+		console.error(err);
+	}
 }

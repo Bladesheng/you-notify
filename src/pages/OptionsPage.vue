@@ -30,6 +30,13 @@ async function saveSettings() {
 		value: url.value,
 	});
 
+	// register content script whenever we save the url
+	if (url.value.length) {
+		await $q.bex.send('tabNotification.register', {
+			url: url.value,
+		});
+	}
+
 	$q.notify({
 		type: 'positive',
 		message: 'Settings saved',
