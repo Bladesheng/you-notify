@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  # this workflow will get triggered when pushing to main but also when merging PR
+  push:
+    branches: [main]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Allow one concurrent run
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  job-1:
+    name: Build extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Create Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.16.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+          run_install: false
+
+      - name: Install packages
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the Application
+        run: pnpm run build:bex
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: ./dist/bex

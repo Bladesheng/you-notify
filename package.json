@@ -10,6 +10,7 @@
 		"dev": "quasar dev",
 		"dev:bex": "quasar dev -m bex",
 		"build": "quasar build",
+		"build:bex": "quasar build -m bex",
 		"format": "prettier --write --ignore-path .gitignore ."
 	},
 	"dependencies": {
