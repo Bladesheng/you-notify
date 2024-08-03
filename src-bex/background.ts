@@ -1,5 +1,12 @@
 import { bexBackground } from 'quasar/wrappers';
 
+type INotification = {
+	$type: string;
+	id: string;
+	content: string;
+	metadata: string;
+};
+
 function openExtension() {
 	chrome.tabs.create(
 		{
@@ -33,19 +40,18 @@ export default bexBackground((bridge, allActiveConnections) => {
 
 		setInterval(async () => {
 			console.log('interval');
-
-			chrome.storage.local.get(null, (items) => {
-				console.log(items);
-			});
-		}, 5_000);
+			fetchNotifications();
+		}, 60_000);
 
 		fetchNotifications();
 
 		function fetchNotifications() {
-			chrome.storage.local.get(['token', 'youTrackUrl'], async (items) => {
-				const bearer = `Bearer ${items.token}`;
+			chrome.storage.local.get(['YouTrackApiToken', 'YouTrackUrl'], async (items) => {
+				const { YouTrackApiToken, YouTrackUrl } = items;
+
+				const bearer = `Bearer ${YouTrackApiToken}`;
 				// https://stackoverflow.com/questions/51596809/how-do-i-access-user-notifications-via-rest-in-youtrack
-				const url = `https://${items.youTrackUrl}/api/users/notifications?fields=id,content,metadata`;
+				const url = `https://${YouTrackUrl}/api/users/notifications?fields=id,content,metadata`;
 
 				try {
 					const res = await fetch(url, {
@@ -53,16 +59,36 @@ export default bexBackground((bridge, allActiveConnections) => {
 							Authorization: bearer,
 						},
 					});
-					console.log(res);
 
-					const notifications = await res.json();
+					const notifications: INotification[] = await res.json();
 					console.log(notifications);
 
-					chrome.notifications.create({
-						title: 'title: hi',
-						message: `message: you got ${notifications.length} notifications`,
-						type: 'basic',
-						iconUrl: chrome.runtime.getURL('www/icons/favicon-128x128.png'),
+					chrome.storage.session.get(['displayedNotifications'], (items) => {
+						// IDs of all notifications that have already been show to the user
+						const alreadyDisplayed: string[] = items.displayedNotifications ?? [];
+
+						for (const notification of notifications) {
+							if (alreadyDisplayed.includes(notification.id)) {
+								// this one was already displayed
+								continue;
+							}
+
+							// @TODO decode content
+
+							chrome.notifications.create({
+								title: 'title: hi',
+								message: `message: you got new notification: @TODO decoded content`,
+								type: 'basic',
+								iconUrl: chrome.runtime.getURL('www/icons/favicon-128x128.png'),
+							});
+
+							alreadyDisplayed.push(notification.id);
+						}
+
+						// so that the new notifications don't get shown again
+						chrome.storage.session.set({
+							displayedNotifications: [...alreadyDisplayed],
+						});
 					});
 				} catch (err) {
 					console.error(err);
