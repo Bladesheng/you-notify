@@ -38,11 +38,37 @@ async function saveSettings() {
 </script>
 
 <template>
-	<q-input v-model="token" label="YouTrack Token" />
+	<div class="options">
+		<header>
+			<h1 class="text-h4">YouNotify</h1>
+		</header>
 
-	<q-input v-model="url" label="YouTrack URL" />
+		<main>
+			<div class="youtrackOptions">
+				<q-input v-model="token" label="YouTrack Token" placeholder="perm:123456789" />
 
-	<q-btn @click="saveSettings()" color="primary" label="Save" />
+				<q-input v-model="url" label="YouTrack URL" placeholder="bugs.something.com" />
+
+				<q-btn @click="saveSettings()" color="primary" label="Save" />
+			</div>
+		</main>
+	</div>
 </template>
 
-<style scoped></style>
+<style scoped lang="scss">
+.options {
+	padding: 1rem;
+}
+
+.youtrackOptions {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+
+	max-width: 30rem;
+
+	button {
+		align-self: flex-end;
+	}
+}
+</style>
