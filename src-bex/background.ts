@@ -170,13 +170,13 @@ function fetchNotifications() {
 						iconUrl: chrome.runtime.getURL('www/icons/favicon-128x128.png'),
 					});
 
-					await bridge.send('tabNotification.create');
+					bridge.send('tabNotification.create');
 
 					// so that the new notifications don't get shown again
 					alreadyDisplayed.push(notification.id);
 				}
 
-				chrome.storage.session.set({
+				await chrome.storage.session.set({
 					displayedNotifications: alreadyDisplayed,
 				});
 			});
