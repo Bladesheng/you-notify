@@ -7,6 +7,8 @@ const $q = useQuasar();
 <template>
 	<div class="popup">
 		<header>
+			<img src="icons/favicon-48x48.png" />
+
 			<h1 class="text-h4">YouNotify</h1>
 
 			<q-btn round color="secondary" icon="settings" to="/options" target="_blank" />

@@ -47,6 +47,8 @@ async function saveSettings() {
 <template>
 	<div class="options">
 		<header>
+			<img src="icons/favicon-128x128.png" />
+
 			<h1 class="text-h4">YouNotify</h1>
 		</header>
 
@@ -65,6 +67,15 @@ async function saveSettings() {
 <style scoped lang="scss">
 .options {
 	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 4rem;
+}
+
+header {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
 }
 
 .youtrackOptions {
