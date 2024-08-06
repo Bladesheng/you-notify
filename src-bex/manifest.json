@@ -3,9 +3,9 @@
 
 	"name": "YouNotify",
 
-	"version": "1.0.0",
+	"version": "0.0.1",
 
-	"description": "@TODO description",
+	"description": "Displays your YouTrack notifications as system notifications",
 
 	"icons": {
 		"16": "icons/icon-16x16.png",
