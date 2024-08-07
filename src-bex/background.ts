@@ -27,6 +27,7 @@ declare module '@quasar/app-vite' {
 // so that we have access to the bridge outside the bexBackground callback
 // (we can't put everything in the callback, because it is run whenever we open new tab, etc.)
 let bridge: BexBridge;
+let isBridgeMounted = false;
 
 chrome.runtime.onInstalled.addListener(openExtensionOptions);
 chrome.action.onClicked.addListener(openExtensionOptions);
@@ -50,16 +51,21 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 
 chrome.storage.local.get(['YouTrackUrl'], async (items) => {
 	const { YouTrackUrl } = items;
-	if (YouTrackUrl.length) {
-		// register content script if we know the url after browser start
-		await registerContentScript(YouTrackUrl);
+	if (YouTrackUrl === undefined) {
+		return;
 	}
-});
 
-setupInterval();
+	// register content script if we know the url after browser start
+	await registerContentScript(YouTrackUrl);
+});
 
 export default bexBackground((_bridge, allActiveConnections) => {
 	bridge = _bridge;
+
+	if (!isBridgeMounted) {
+		isBridgeMounted = true;
+		setupInterval();
+	}
 
 	bridge.on('tabNotification.register', async ({ data, respond }) => {
 		await registerContentScript(data.url);
@@ -134,6 +140,9 @@ function setupInterval() {
 function fetchNotifications() {
 	chrome.storage.local.get(['YouTrackApiToken', 'YouTrackUrl'], async (items) => {
 		const { YouTrackApiToken, YouTrackUrl } = items;
+		if (YouTrackApiToken === undefined || YouTrackUrl === undefined) {
+			return;
+		}
 
 		const bearer = `Bearer ${YouTrackApiToken}`;
 		// https://stackoverflow.com/questions/51596809/how-do-i-access-user-notifications-via-rest-in-youtrack
