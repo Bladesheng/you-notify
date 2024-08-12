@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { onMounted, ref } from 'vue';
+import CreditsFooter from 'components/CreditsFooter.vue';
 
 const $q = useQuasar();
 
@@ -75,6 +76,8 @@ async function saveSettings() {
 				</div>
 			</q-form>
 		</main>
+
+		<CreditsFooter />
 	</div>
 </template>
 
