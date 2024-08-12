@@ -231,7 +231,7 @@ function parseMessage(message: string) {
 }
 
 /**
- * Dynamically registers content script for given url
+ * Dynamically registers content script for given url and immediately injects the content script into all matching tabs
  * (we don't know the url before the user saves it in the settings page, so we can't put the url into manifest.json)
  */
 async function registerContentScript(url: string) {
@@ -253,6 +253,21 @@ async function registerContentScript(url: string) {
 				matches: [`*://${url}/*`],
 			},
 		]);
+
+		// registering a script doesn't inject it until the tab is refreshed / opened again, so we have to
+		// manually inject it into currently opened tabs
+		const tabs = await chrome.tabs.query({ url: `*://${url}/*` });
+		for (const tab of tabs) {
+			if (tab.id === undefined) {
+				console.error('tab without id', tab);
+				continue;
+			}
+
+			await chrome.scripting.executeScript({
+				target: { tabId: tab.id },
+				files: ['my-content-script.js'],
+			});
+		}
 	} catch (err) {
 		console.error(err);
 	}
