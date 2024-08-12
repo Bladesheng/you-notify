@@ -53,13 +53,27 @@ async function saveSettings() {
 		</header>
 
 		<main>
-			<div class="youtrackOptions">
-				<q-input v-model="token" label="YouTrack Token" placeholder="perm:123456789" />
+			<q-form @submit="saveSettings()">
+				<div class="youtrackOptions">
+					<q-input
+						v-model="token"
+						label="YouTrack Token"
+						placeholder="perm:123456789"
+						lazy-rules
+						:rules="[(val) => val?.length || 'Required']"
+					/>
 
-				<q-input v-model="url" label="YouTrack URL" placeholder="bugs.something.com" />
+					<q-input
+						v-model="url"
+						label="YouTrack URL"
+						placeholder="bugs.something.com"
+						lazy-rules
+						:rules="[(val) => val?.length || 'Required']"
+					/>
 
-				<q-btn @click="saveSettings()" color="primary" label="Save" />
-			</div>
+					<q-btn color="primary" label="Save" type="submit" />
+				</div>
+			</q-form>
 		</main>
 	</div>
 </template>
