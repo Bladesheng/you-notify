@@ -5,7 +5,7 @@
 		<small class="flex items-center">
 			Made by
 			<a href="https://github.com/Bladesheng/you-notify" target="_blank" class="flex items-center">
-				<img src="/github-mark.svg" class="q-mx-xs" alt="github-mark" />
+				<img src="github-mark.svg" class="q-mx-xs" alt="github-mark" />
 
 				<span class="text-primary">Bladesheng</span>
 			</a>
