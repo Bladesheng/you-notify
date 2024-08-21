@@ -26,11 +26,28 @@ declare module '@quasar/app-vite' {
 
 // so that we have access to the bridge outside the bexBackground callback
 // (we can't put everything in the callback, because it is run whenever we open new tab, etc.)
-let bridge: BexBridge;
-let isBridgeMounted = false;
+let bridge: BexBridge | undefined;
 
-chrome.runtime.onInstalled.addListener(openExtensionOptions);
-chrome.action.onClicked.addListener(openExtensionOptions);
+chrome.runtime.onInstalled.addListener(() => {
+	// open the options with form, so that user can immediately fill it out
+	openExtensionOptions();
+
+	setupInterval();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+	setupInterval();
+
+	// register content script if we know the url after browser start
+	chrome.storage.local.get(['YouTrackUrl'], async (items) => {
+		const { YouTrackUrl } = items;
+		if (YouTrackUrl === undefined) {
+			return;
+		}
+
+		await registerContentScript(YouTrackUrl);
+	});
+});
 
 chrome.notifications.onClicked.addListener((notificationId) => {
 	// you can pass data through the notification id - see here https://github.com/Seldszar/Gumbo/blob/main/src/background/index.ts#L350
@@ -49,23 +66,8 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 	}
 });
 
-chrome.storage.local.get(['YouTrackUrl'], async (items) => {
-	const { YouTrackUrl } = items;
-	if (YouTrackUrl === undefined) {
-		return;
-	}
-
-	// register content script if we know the url after browser start
-	await registerContentScript(YouTrackUrl);
-});
-
 export default bexBackground((_bridge, allActiveConnections) => {
 	bridge = _bridge;
-
-	if (!isBridgeMounted) {
-		isBridgeMounted = true;
-		setupInterval();
-	}
 
 	bridge.on('tabNotification.register', async ({ data, respond }) => {
 		await registerContentScript(data.url);
@@ -78,7 +80,7 @@ export default bexBackground((_bridge, allActiveConnections) => {
 	 * https://github.com/quasarframework/quasar/issues/14778
 	 */
 	bridge.on('tabNotification.clear', async ({ data, respond }) => {
-		await bridge.send('tabNotification.clear');
+		await bridge!.send('tabNotification.clear');
 		await respond();
 	});
 
@@ -179,7 +181,17 @@ function fetchNotifications() {
 						iconUrl: chrome.runtime.getURL('www/icons/favicon-128x128.png'),
 					});
 
-					bridge.send('tabNotification.create');
+					/**
+					 * the bexBackground callback is fired when:
+					 * - extension's options are opened for the first time
+					 * - whenever page with content script is opened (this isn't 100% reliable though...)
+					 * - ???
+					 *
+					 * But usually it's not fired when you start browser, which means bridge can be undefined.
+					 */
+					if (bridge !== undefined) {
+						bridge.send('tabNotification.create');
+					}
 
 					// so that the new notifications don't get shown again
 					alreadyDisplayed.push(notification.id);
