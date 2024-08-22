@@ -266,6 +266,10 @@ async function registerContentScript(url: string) {
 			},
 		]);
 
+		// after browser start, we need to wait until the tab is "activated".
+		// if we don't wait, chrome thinks the content script is not registered yet and will throw error
+		await new Promise((r) => setTimeout(r, 30_000));
+
 		// registering a script doesn't inject it until the tab is refreshed / opened again, so we have to
 		// manually inject it into currently opened tabs
 		const tabs = await chrome.tabs.query({ url: `*://${url}/*` });
