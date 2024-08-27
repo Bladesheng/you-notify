@@ -37,16 +37,6 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
 	setupInterval();
-
-	// register content script if we know the url after browser start
-	chrome.storage.local.get(['YouTrackUrl'], async (items) => {
-		const { YouTrackUrl } = items;
-		if (YouTrackUrl === undefined) {
-			return;
-		}
-
-		await registerContentScript(YouTrackUrl);
-	});
 });
 
 chrome.notifications.onClicked.addListener((notificationId) => {
@@ -261,14 +251,10 @@ async function registerContentScript(url: string) {
 			{
 				id: scriptId,
 				js: ['my-content-script.js'],
-				persistAcrossSessions: false,
+				persistAcrossSessions: true,
 				matches: [`*://${url}/*`],
 			},
 		]);
-
-		// after browser start, we need to wait until the tab is "activated".
-		// if we don't wait, chrome thinks the content script is not registered yet and will throw error
-		await new Promise((r) => setTimeout(r, 30_000));
 
 		// registering a script doesn't inject it until the tab is refreshed / opened again, so we have to
 		// manually inject it into currently opened tabs
