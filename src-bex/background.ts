@@ -127,6 +127,17 @@ function setupInterval() {
 	setInterval(() => {
 		fetchNotifications();
 	}, 60_000);
+
+	/**
+	 * Heartbeat to keep the service worker alive.
+	 * More info here:
+	 * https://stackoverflow.com/questions/66618136/persistent-service-worker-in-chrome-extension
+	 * https://issues.chromium.org/issues/40733525
+	 * https://developer.chrome.com/docs/extensions/develop/migrate/to-service-workers#keep_a_service_worker_alive_continuously
+	 */
+	setInterval(async () => {
+		await chrome.storage.session.set({ heartbeat: Date.now() });
+	}, 25_000);
 }
 
 function fetchNotifications() {
