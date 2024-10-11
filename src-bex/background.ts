@@ -37,6 +37,16 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
 	setupInterval();
+
+	chrome.storage.local.get(['displayedNotifications'], async (items) => {
+		// IDs of all notifications that have already been show to the user
+		const alreadyDisplayed: string[] = items.displayedNotifications ?? [];
+
+		await chrome.storage.local.set({
+			// get rid of old notifications
+			displayedNotifications: alreadyDisplayed.slice(0, 50),
+		});
+	});
 });
 
 chrome.notifications.onClicked.addListener((notificationId) => {
@@ -160,9 +170,10 @@ function fetchNotifications() {
 			const notifications: INotification[] = await res.json();
 			console.log(notifications);
 
-			chrome.storage.session.get(['displayedNotifications'], async (items) => {
+			chrome.storage.local.get(['displayedNotifications'], async (items) => {
 				// IDs of all notifications that have already been show to the user
 				const alreadyDisplayed: string[] = items.displayedNotifications ?? [];
+				console.log('alreadyDisplayed', alreadyDisplayed);
 
 				for (const notification of notifications) {
 					if (alreadyDisplayed.includes(notification.id)) {
@@ -195,10 +206,10 @@ function fetchNotifications() {
 					}
 
 					// so that the new notifications don't get shown again
-					alreadyDisplayed.push(notification.id);
+					alreadyDisplayed.unshift(notification.id);
 				}
 
-				await chrome.storage.session.set({
+				await chrome.storage.local.set({
 					displayedNotifications: alreadyDisplayed,
 				});
 			});
